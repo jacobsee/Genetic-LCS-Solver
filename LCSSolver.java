@@ -1,9 +1,160 @@
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
+
 public class LCSSolver{
 
   public static void main(String args[]){
 
-    String testStringA = "providence";
-    String testStringB = "president";
+    //Set up our two strings from which to evolve the LCS.
+    //Todo: Add interactivity
+
+    //String testStringA = "providence";
+    //String testStringB = "president"; //Correct bitstring is 110011110 with a fitness equalling the length of 9
+
+    //String testStringA = "slhnlszvhsuehtvluksthnkzshtzsloruthnvzclhsueluvebluszvgeisgltvzseuhfvlseihfv";
+    //String testStringB = "lochsnozsehlvuhezgiucrheuydkglznkjdxzsgcnlseibvfdsLzzlvsiehbzkevhbzsfdskjhvjc";
+
+    String testStringA = "supercalifragilisticexpialidocious";
+    String testStringB = "spoercalifalfekleficexalfnkfdlioadf";
+
+    //Create and initialize a random population of candidates
+
+    int bitLength = Math.min(testStringA.length(), testStringB.length());
+    int populationSize = (int)Math.pow(bitLength, 2);
+
+    double candidateMutationProbability = 0.25;
+    double bitMutationRate = 0.25;
+
+    ArrayList<Candidate> population = new ArrayList<Candidate>();
+
+    for(int i = 0; i < populationSize; i++){
+      population.add(new Candidate(bitLength));
+    }
+
+    System.out.println("Created a population with " + populationSize + " members.");
+    System.out.println("We are targeting a fitness of " + bitLength + ".");
+
+    System.out.println("\nGeneration\t|\tAvg. Fitness\t|\tHigh Fitness");
+    System.out.println("-----------------------------------------------------------");
+
+    // THE GOOD STUFF
+
+    boolean solved = false;
+    Candidate perfectCandidate = null;
+    int generation = 0;
+    ArrayList<Double> generationHistory = new ArrayList<Double>();
+
+    while(!solved){
+
+      generation++;
+
+      int fitnessSum = 0;
+      double probabilitySum = 0;
+      int highestFitness = 0;
+
+      // Need to compute all fitnesses and the sum of all fitnesses for roulette selection. Also check for the perfect candidate.
+
+      for(int i = 0; i < populationSize; i++){
+        population.get(i).calculateFitness(testStringA, testStringB);
+        fitnessSum += population.get(i).fitness;
+        if(population.get(i).fitness > highestFitness){
+          highestFitness = population.get(i).fitness;
+        }
+        if(population.get(i).fitness == bitLength){
+          perfectCandidate = population.get(i);
+          solved = true;
+        }
+      }
+
+      //System.out.println("Generation " + generation + " has an average fitness of " + ((float)fitnessSum / populationSize) + " and a highest fitness of " + highestFitness + ".");
+      System.out.println(generation + "\t\t|\t" + String.format("%.2f", (float)fitnessSum / populationSize) + " \t\t|\t" + highestFitness);
+
+      generationHistory.add((double)fitnessSum / populationSize);
+
+      if(!solved){
+
+        // No perfect candidate... We'll need to generate a new population.
+
+        ArrayList<Candidate> temp = new ArrayList<Candidate>();
+
+        for(int i = 0; i < populationSize; i++){
+          temp.add(population.get(i).clone());
+          temp.get(i).rouletteSlice = probabilitySum + ((double)temp.get(i).fitness / fitnessSum);
+          probabilitySum = temp.get(i).rouletteSlice;
+        }
+
+        population.clear();
+
+        ArrayList<String> usedBitstrings = new ArrayList<String>();
+
+        while(population.size() < populationSize){
+            Candidate selectedFirst = null;
+            Candidate selectedSecond = null;
+            while(selectedFirst == null || selectedSecond == null){
+              double rouletteBall = ThreadLocalRandom.current().nextDouble(1);
+              for(int i = 0; i < populationSize; i++){
+                if(i > 0){
+                  if(rouletteBall < temp.get(i).rouletteSlice && rouletteBall > temp.get(i - 1).rouletteSlice){
+                    if(selectedFirst == null){
+                      selectedFirst = temp.get(i);
+                    }else{
+                      selectedSecond = temp.get(i);
+                    }
+                  }
+                }else{
+                  if(rouletteBall < temp.get(i).rouletteSlice){
+                    if(selectedFirst == null){
+                      selectedFirst = temp.get(i);
+                    }else{
+                      selectedSecond = temp.get(i);
+                    }
+                  }
+                }
+              }
+            }
+            int slicePoint = ThreadLocalRandom.current().nextInt(1, bitLength); //Crossover at least 1 char at the very beginning or very end, never before or after the entire bitstring
+            String newBitstring = selectedFirst.bitstring.substring(0, slicePoint) + selectedSecond.bitstring.substring(slicePoint);
+            if(ThreadLocalRandom.current().nextDouble(1) < candidateMutationProbability){
+              String bitStringCopy = "";
+              for(int i = 0; i < newBitstring.length(); i++){
+                if(ThreadLocalRandom.current().nextDouble(1) < bitMutationRate){
+                  bitStringCopy += newBitstring.charAt(i) == '0' ? '1' : '0';
+                }else{
+                  bitStringCopy += newBitstring.charAt(i);
+                }
+              }
+              newBitstring = bitStringCopy;
+            }
+            if(!usedBitstrings.contains(newBitstring)){ // Let's not make a bunch of identical candidates in the population.
+              population.add(new Candidate(newBitstring));
+              usedBitstrings.add(newBitstring);
+            }
+        }
+
+        probabilitySum = 0;
+        fitnessSum = 0;
+
+        if(generation > 5){
+          if(Math.abs(generationHistory.get(generation - 5) - generationHistory.get(generation - 1)) < 0.5 && bitMutationRate > 0.01){
+            System.out.println("Below target fitness improvement... Decreasing probability of mutation.");
+            bitMutationRate /= 2;
+            candidateMutationProbability /= 2;
+          }
+        }
+
+      }
+
+    }
+
+    String LCS = "";
+
+    for(int i = 0; i < perfectCandidate.bitstring.length(); i++){
+      if(perfectCandidate.bitstring.charAt(i) == '1'){
+        LCS += testStringA.charAt(i);
+      }
+    }
+
+    System.out.println("\nPerfect candidate " + perfectCandidate.bitstring + " found in generation " + generation + " with a fitness of " + perfectCandidate.fitness + " yields LCS '" + LCS + "'.\n");
 
   }
 
