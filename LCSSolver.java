@@ -97,21 +97,11 @@ public class LCSSolver{
             while(selectedFirst == null || selectedSecond == null){
               double rouletteBall = ThreadLocalRandom.current().nextDouble(1);
               for(int i = 0; i < populationSize; i++){
-                if(i > 0){
-                  if(rouletteBall < temp.get(i).rouletteSlice && rouletteBall > temp.get(i - 1).rouletteSlice){
-                    if(selectedFirst == null){
-                      selectedFirst = temp.get(i);
-                    }else{
-                      selectedSecond = temp.get(i);
-                    }
-                  }
-                }else{
-                  if(rouletteBall < temp.get(i).rouletteSlice){
-                    if(selectedFirst == null){
-                      selectedFirst = temp.get(i);
-                    }else{
-                      selectedSecond = temp.get(i);
-                    }
+                if((i > 0 && (rouletteBall < temp.get(i).rouletteSlice && rouletteBall > temp.get(i - 1).rouletteSlice)) || (i < 0 && (rouletteBall < temp.get(i).rouletteSlice))) {
+                  if(selectedFirst == null){
+                    selectedFirst = temp.get(i);
+                  }else{
+                    selectedSecond = temp.get(i);
                   }
                 }
               }
