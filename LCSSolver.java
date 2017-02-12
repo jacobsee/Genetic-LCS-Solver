@@ -11,11 +11,11 @@ public class LCSSolver{
     //String testStringA = "providence";
     //String testStringB = "president"; //Correct bitstring is 110011110 with a fitness equalling the length of 9
 
-    //String testStringA = "slhnlszvhsuehtvluksthnkzshtzsloruthnvzclhsueluvebluszvgeisgltvzseuhfvlseihfv";
-    //String testStringB = "lochsnozsehlvuhezgiucrheuydkglznkjdxzsgcnlseibvfdsLzzlvsiehbzkevhbzsfdskjhvjc";
+    String testStringA = "aawocPvsrclzstcsreszetcazcsczsecszeGcseiscvhxdtehxrgUzfgvsrAsdvnvAvbm";
+    String testStringB = "certtPzfnnlewytweebnjadadnsqweembkiGygyiiovqweyebvzaUbrsasfAawrnbAqwe";
 
-    String testStringA = "supercalifragilisticexpialidocious";
-    String testStringB = "spoercalifalfekleficexalfnkfdlioadf";
+    //String testStringA = "supercalifragilisticexpialidocious";
+    //String testStringB = "spoercalifalfekleficexalfnkfdlioadf";
 
     //Create and initialize a random population of candidates
 
@@ -66,7 +66,6 @@ public class LCSSolver{
         }
       }
 
-      //System.out.println("Generation " + generation + " has an average fitness of " + ((float)fitnessSum / populationSize) + " and a highest fitness of " + highestFitness + ".");
       System.out.println(generation + "\t\t|\t" + String.format("%.2f", (float)fitnessSum / populationSize) + " \t\t|\t" + highestFitness);
 
       generationHistory.add((double)fitnessSum / populationSize);
@@ -74,6 +73,8 @@ public class LCSSolver{
       if(!solved){
 
         // No perfect candidate... We'll need to generate a new population.
+
+        // Set the population up for roulette selection.
 
         ArrayList<Candidate> temp = new ArrayList<Candidate>();
 
@@ -85,9 +86,12 @@ public class LCSSolver{
 
         population.clear();
 
-        ArrayList<String> usedBitstrings = new ArrayList<String>();
+        // Begin spawning next generation of candidates
 
         while(population.size() < populationSize){
+
+            // Begin roulette selection
+
             Candidate selectedFirst = null;
             Candidate selectedSecond = null;
             while(selectedFirst == null || selectedSecond == null){
@@ -112,8 +116,14 @@ public class LCSSolver{
                 }
               }
             }
+
+            // Begin crossover of selected candidates to create child candidate
+
             int slicePoint = ThreadLocalRandom.current().nextInt(1, bitLength); //Crossover at least 1 char at the very beginning or very end, never before or after the entire bitstring
             String newBitstring = selectedFirst.bitstring.substring(0, slicePoint) + selectedSecond.bitstring.substring(slicePoint);
+
+            // Begin mutation of child candidate (possibly)
+
             if(ThreadLocalRandom.current().nextDouble(1) < candidateMutationProbability){
               String bitStringCopy = "";
               for(int i = 0; i < newBitstring.length(); i++){
@@ -125,14 +135,16 @@ public class LCSSolver{
               }
               newBitstring = bitStringCopy;
             }
-            if(!usedBitstrings.contains(newBitstring)){ // Let's not make a bunch of identical candidates in the population.
-              population.add(new Candidate(newBitstring));
-              usedBitstrings.add(newBitstring);
-            }
+
+            // Newly spawned child candidate becomes a functioning member of society.
+
+            population.add(new Candidate(newBitstring));
         }
 
         probabilitySum = 0;
         fitnessSum = 0;
+
+        // Higher bitstring lengths were significantly improved by reducing mutation rate if fitness begins to plateau.
 
         if(generation > 5){
           if(Math.abs(generationHistory.get(generation - 5) - generationHistory.get(generation - 1)) < 0.5 && bitMutationRate > 0.01){
@@ -145,6 +157,8 @@ public class LCSSolver{
       }
 
     }
+
+    // Let's actually figure out what that bitstring represents.
 
     String LCS = "";
 
